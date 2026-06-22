@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="외식업 전용 AI 거래명세서 OCR 및 원가 관리 SaaS 플랫폼 구축 — 프로젝트 제안서" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link href="https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2/fonts/variable/woff2/SUIT-Variable.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['SUIT Variable', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              600: '#0284c7',
+              700: '#0369a1'
+            }
+          },
+          boxShadow: {
+            soft: '0 10px 30px -18px rgba(15, 23, 42, 0.35)'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root { color-scheme: light; font-size: 16px; /* 12pt minimum base */ }
+    body {
+      font-family: 'SUIT Variable', sans-serif;
+      font-size: 1rem; /* 16px = 12pt */
+      background-image:
+        radial-gradient(circle at 12% 18%, rgba(14, 165, 233, 0.08), transparent 42%),
+        radial-gradient(circle at 88% 82%, rgba(2, 132, 199, 0.06), transparent 48%);
+    }
+
+    /* ─── doc-content typography (from harmony-link-be) ─── */
+    .doc-content h1, .doc-content h2, .doc-content h3, .doc-content h4 {
+      color: rgb(15 23 42); font-weight: 700; letter-spacing: -0.01em;
+      line-height: 1.3; margin-top: 1.6em; margin-bottom: 0.7em;
+    }
+    .doc-content h1 { font-size: 2rem; margin-top: 0.2em; }
+    .doc-content h2 { font-size: 1.4rem; }
+    .doc-content h3 { font-size: 1.15rem; }
+    .doc-content p, .doc-content li {
+      color: rgb(51 65 85); line-height: 1.8; font-size: 1rem;
+    }
+    .doc-content p, .doc-content ul, .doc-content ol,
+    .doc-content table, .doc-content pre, .doc-content blockquote {
+      margin-bottom: 1rem;
+    }
+    .doc-content ul, .doc-content ol { padding-left: 1.2rem; }
+    .doc-content ul { list-style: disc; }
+    .doc-content ol { list-style: decimal; }
+    .doc-content table {
+      width: 100%; border-collapse: collapse;
+      border: 1px solid rgb(226 232 240); border-radius: 0.75rem;
+      overflow: hidden; font-size: 1rem;
+    }
+    .doc-content th, .doc-content td {
+      border: 1px solid rgb(226 232 240); padding: 0.7rem 0.8rem;
+      text-align: left; vertical-align: top;
+    }
+    .doc-content th {
+      background: rgb(248 250 252); color: rgb(30 41 59); font-weight: 600;
+    }
+    .doc-content pre, .doc-content code {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+    .doc-content pre {
+      background: rgb(15 23 42); color: rgb(226 232 240);
+      padding: 1rem; border-radius: 0.75rem; overflow-x: auto;
+      font-size: 1rem; line-height: 1.65;
+    }
+    .doc-content p code, .doc-content li code,
+    .doc-content td code, .doc-content th code {
+      background: rgb(241 245 249); color: rgb(15 23 42);
+      border: 1px solid rgb(226 232 240); border-radius: 0.4rem;
+      padding: 0.08rem 0.4rem; font-size: 1em;
+    }
+    .doc-content blockquote {
+      border-left: 3px solid rgb(14 165 233); padding-left: 0.85rem;
+      color: rgb(71 85 105); background: rgb(240 249 255);
+      border-radius: 0.5rem; padding-top: 0.55rem; padding-bottom: 0.55rem;
+    }
+
+    /* ─── 12pt (16px) minimum font size ─── */
+    .text-xs { font-size: 1rem !important; }
+
+    /* ─── Timeline ─── */
+    .timeline { position: relative; padding-left: 2rem; }
+    .timeline::before {
+      content: ''; position: absolute; left: 0.6rem; top: 0.25rem; bottom: 0.25rem;
+      width: 2px; background: rgb(186 230 253);
+    }
+    .timeline-item { position: relative; margin-bottom: 1.75rem; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -1.65rem; top: 0.35rem;
+      width: 0.75rem; height: 0.75rem; border-radius: 50%;
+      background: rgb(2 132 199); border: 3px solid rgb(224 242 254);
+    }
+
+    /* ─── Page sections ─── */
+    .page-section { display: none; }
+    .page-section.active { display: block; }
+
+    /* ─── Mobile sidebar toggle ─── */
+    #sidebar-backdrop { display: none; }
+    #sidebar-backdrop.open { display: block; }
+    @media (max-width: 1023px) {
+      #sidebar { transform: translateX(-100%); transition: transform 0.2s ease; position: fixed; top: 0; left: 0; z-index: 40; height: 100vh; width: 80vw; max-width: 320px; }
+      #sidebar.open { transform: translateX(0); }
+    }
+  </style>
+  <title>외식업 전용 AI 거래명세서 OCR 및 원가 관리 SaaS 플랫폼 구축 — 프로젝트 제안서</title>
+</head>
+<body class="text-slate-800 font-sans antialiased">
+  <div class="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-10">
+
+    <!-- ─── Header ─── -->
+    <header class="mb-6 rounded-2xl border border-slate-200/70 bg-white/85 px-5 py-3 shadow-soft backdrop-blur">
+      <div class="flex flex-wrap items-center gap-3">
+        <button id="sidebar-toggle" class="lg:hidden inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700 hover:border-sky-300 hover:text-sky-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          메뉴
+        </button>
+        <a href="#home" class="inline-flex items-center shrink-0 text-sm font-bold tracking-tight text-slate-800">
+          프로젝트 제안서
+        </a>
+        <div class="hidden sm:block ml-auto text-right">
+          <p class="text-sm font-semibold tracking-[0.04em] text-sky-700/90">외식업 전용 AI 거래명세서 OCR 및 원가 관리 SaaS</p>
+          <p class="text-xs text-slate-400">프로젝트 제안서</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+
+      <!-- ─── Sidebar ─── -->
+      <div id="sidebar-backdrop" class="fixed inset-0 bg-black/30 z-30 lg:hidden" onclick="closeSidebar()"></div>
+      <aside id="sidebar" class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-soft backdrop-blur lg:sticky lg:top-6 lg:h-[calc(100vh-4rem)] lg:overflow-auto">
+        <nav id="nav" class="space-y-1">
+          <a href="#home" data-page="home" class="nav-link block rounded-xl border px-3 py-2 text-sm border-sky-200 bg-sky-50 font-medium text-sky-700">홈</a>
+          <div class="my-3 border-t border-slate-200"></div>
+          <p class="mb-2 mt-1 px-1 text-sm font-semibold tracking-[0.14em] text-slate-400">제안서</p>
+          <a href="#overview" data-page="overview" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">프로젝트 소개</a>
+          <a href="#estimate" data-page="estimate" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">견적서</a>
+          <a href="#manday" data-page="manday" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">공수계산서</a>
+          <a href="#prd" data-page="prd" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">PRD</a>
+          <div class="my-3 border-t border-slate-200"></div>
+          <p class="mb-2 mt-1 px-1 text-sm font-semibold tracking-[0.14em] text-slate-400">일정 & 경험</p>
+          <a href="#timeline" data-page="timeline" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">일정 제안</a>
+          <a href="#portfolio" data-page="portfolio" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">유사 프로젝트 경험</a>
+        </nav>
+      </aside>
+
+      <!-- ─── Main Content ─── -->
+      <main class="min-w-0">
+
+        <!-- PAGE: Home -->
+        <div id="page-home" class="page-section active space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-6 shadow-soft backdrop-blur md:p-8">
+            <p class="mb-2 text-xs font-semibold tracking-[0.2em] text-sky-700/80">프로젝트 제안서</p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">외식업 전용 AI 거래명세서 OCR 및 원가 관리 SaaS 플랫폼 구축</h1>
+            <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600 md:text-base">스마트폰으로 식자재 거래명세서를 촬영하면 AI Vision이 품목·수량·단가·공급업체를 구조화 데이터로 자동 추출하고, 사용자 교정 데이터를 축적해 스스로 정확도를 높이는 재학습 파이프라인과 식자재→프렙→메뉴 3단계 원가 계산 엔진을 갖춘 외식업 전용 B2B SaaS를 구축합니다. iOS/Android 앱·웹 대시보드·최고 관리자 백오피스를 단일 데이터 모델 위에서 90일 내 일괄 제공합니다.</p>
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+              <span class="inline-flex rounded-full border border-sky-200 bg-sky-100 px-2.5 py-1 text-sm font-semibold tracking-[0.12em] text-sky-700">34,000,000원 (VAT 별도)</span>
+              <span class="inline-flex rounded-full border border-sky-200 bg-sky-100 px-2.5 py-1 text-sm font-semibold tracking-[0.12em] text-sky-700">90일</span>
+              <span class="inline-flex rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-sm font-semibold tracking-[0.12em] text-amber-700">SaaS·솔루션 / 모바일·웹 / BI·대시보드</span>
+              <a href="https://www.wishket.com/project/156255/" target="_blank" rel="noopener noreferrer"
+                 class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-sm font-medium text-slate-500 transition hover:border-sky-300 hover:text-sky-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                원본 공고
+              </a>
+            </div>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <a href="#overview" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">소개</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">프로젝트 소개</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">프로젝트 분석, 핵심 요구사항 정리, 제안 포인트</p>
+            </a>
+            <a href="#estimate" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">비용</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">견적서</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">항목별 비용 산출 근거 및 상세 견적</p>
+            </a>
+            <a href="#manday" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">공수</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">공수계산서</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">기능별 개발 공수(man-day) 산출 내역</p>
+            </a>
+            <a href="#prd" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-amber-100 text-amber-700 border-amber-200">기획</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">PRD</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">기능 요구사항 정의서, 사용자 스토리, 기술 제약</p>
+            </a>
+            <a href="#timeline" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-amber-100 text-amber-700 border-amber-200">일정</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">일정 제안</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">단계별 마일스톤 및 산출물 일정표</p>
+            </a>
+            <a href="#portfolio" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-amber-100 text-amber-700 border-amber-200">경험</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">유사 프로젝트 경험</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">유사 프로젝트 수행 경험 및 기술 스택</p>
+            </a>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">10+</p>
+              <p class="mt-1 text-xs text-slate-500">누적 수행 프로젝트</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">B2B SaaS</p>
+              <p class="mt-1 text-xs text-slate-500">멀티테넌트 구축 다수</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">AI · LLM</p>
+              <p class="mt-1 text-xs text-slate-500">Vision/LLM 연동 경험</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">iOS · AOS · Web</p>
+              <p class="mt-1 text-xs text-slate-500">크로스플랫폼 동시 출시</p>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-50 to-brand-50 p-6 text-center shadow-soft md:p-10">
+            <h2 class="text-xl font-bold tracking-tight text-slate-900 md:text-2xl">함께 만들어 가겠습니다</h2>
+            <p class="mx-auto mt-3 max-w-lg text-sm leading-7 text-slate-600">각 메뉴를 클릭하시면 상세 내용을 확인하실 수 있습니다.</p>
+          </div>
+        </div>
+
+        <!-- PAGE: 프로젝트 소개 -->
+        <div id="page-overview" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>프로젝트 소개</h1>
+              <blockquote>매일 변동되는 식자재 단가의 수기 입력과 원가 계산을 AI로 자동화하여, 외식업 사장님에게 직관적인 마진율 대시보드를 제공하는 B2B SaaS를 구축합니다.</blockquote>
+
+              <h2>프로젝트 개요</h2>
+              <table>
+                <tr><th>항목</th><th>내용</th></tr>
+                <tr><td>프로젝트명</td><td><a href="https://www.wishket.com/project/156255/" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline decoration-sky-300 hover:decoration-sky-500">외식업 전용 AI 거래명세서 OCR 및 원가 관리 SaaS 플랫폼 구축</a></td></tr>
+                <tr><td>카테고리</td><td>SaaS·솔루션 / 웹·안드로이드·iOS / 데이터 분석·BI / 통계·대시보드</td></tr>
+                <tr><td>제안 금액</td><td>34,000,000원 (VAT 별도)</td></tr>
+                <tr><td>제안 기간</td><td>90일</td></tr>
+                <tr><td>핵심 기술</td><td>React Native · React · Supabase · Vercel · GPT-4o Vision / Claude API</td></tr>
+              </table>
+
+              <h2>핵심 요구사항 분석</h2>
+              <ul>
+                <li><strong>AI Vision OCR &amp; 자동 재학습</strong> — 네이티브 카메라 촬영·업로드, GPT-4o Vision/Claude API 기반 품목명·수량·단가·공급업체 JSON 추출, 외식업 품목명 사전 기반 이표기 자동 매핑, 사용자 교정 UI 및 교정 데이터 활용 재학습 파이프라인</li>
+                <li><strong>3단계 원가 계산 엔진</strong> — 식자재→프렙→메뉴 계층형 DB, 식자재 단가 변경 시 연관 메뉴 원가율 연쇄 자동 업데이트, 목표 원가율 초과 시 실시간 푸시 알림, 메뉴별 원가율/마진율 차트, 월 고정비·인건비 기반 수익 구조 진단</li>
+                <li><strong>멀티플랫폼 프론트엔드</strong> — React Native 사용자 앱, React 웹 대시보드, Supabase Auth 회원가입/로그인 및 개인정보보호법 기반 동의 UI</li>
+                <li><strong>최고 관리자 백오피스</strong> — 전체 가입 식당 관리, 글로벌 품목 사전 마스터 데이터 관리, 식당별 API 호출 통계·에러 로그 모니터링</li>
+                <li><strong>비기능 요구사항</strong> — Vision API 응답 지연 대응 로딩 UX, Supabase RLS 기반 식당 간 데이터 완전 격리</li>
+              </ul>
+
+              <h2>제안 포인트</h2>
+              <ul>
+                <li><strong>정확도와 자가 개선이 핵심인 OCR 파이프라인</strong> — Vision API 추출 결과를 외식업 전용 품목명 사전과 매핑하여 이표기를 흡수하고, 사용자 교정 데이터를 정답 데이터셋으로 축적해 프롬프트·매핑 규칙을 지속 보정하는 재학습 루프를 설계합니다.</li>
+                <li><strong>연쇄 업데이트가 보장되는 3단계 원가 엔진</strong> — 계층형 데이터 모델과 집계 트리거로 특정 식자재 단가가 바뀌면 이를 사용하는 프렙·메뉴 원가율이 자동 재계산되며, 목표 원가율 초과 시점에 실시간 푸시로 사장님께 즉시 알립니다.</li>
+                <li><strong>완벽한 멀티테넌트 데이터 격리</strong> — Supabase RLS 정책으로 식당 단위 행 수준 격리를 구현하여 식당 간 데이터 노출을 원천 차단합니다. (유사 멀티테넌트 SaaS 다수 구축 경험)</li>
+                <li><strong>iOS·Android·웹·관리자 일괄 제공</strong> — 단일 데이터 모델 위에서 React Native 앱과 React 웹·관리자 백오피스를 통합 개발하여 일관된 UX와 유지보수성을 확보합니다.</li>
+                <li><strong>지연을 자연스럽게 흡수하는 UX</strong> — Vision API 호출은 비동기 처리하고, 업로드→분석→교정 흐름에 스켈레톤·진행률 로딩을 적용하여 체감 대기 시간을 최소화합니다.</li>
+              </ul>
+
+              <h2>사용 기술 및 툴</h2>
+              <h3>개발 기술</h3>
+              <div class="flex flex-wrap gap-2 not-prose mb-4">
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">React Native</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">React.js</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Supabase</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">PostgreSQL</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Supabase RLS</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Supabase Auth</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Edge Functions</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">GPT-4o Vision API</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Anthropic Claude API</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Vercel</span>
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Push Notification</span>
+              </div>
+              <h3>협업 및 커뮤니케이션</h3>
+              <div class="flex flex-wrap gap-2 not-prose">
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">Slack / 카카오톡</span>
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">Zoom / Google Meet</span>
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">Notion</span>
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">GitHub Issues</span>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- PAGE: 견적서 -->
+        <div id="page-estimate" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>견적서</h1>
+              <blockquote>본 견적서는 프로젝트 요구사항 분석을 기반으로 산출되었습니다.</blockquote>
+
+              <h2>견적 요약</h2>
+              <table>
+                <tr><th>항목</th><th>내용</th></tr>
+                <tr><td>프로젝트명</td><td>외식업 전용 AI 거래명세서 OCR 및 원가 관리 SaaS 플랫폼 구축</td></tr>
+                <tr><td>제안 금액</td><td><strong>34,000,000원 (VAT 별도)</strong></td></tr>
+                <tr><td>제안 기간</td><td>90일</td></tr>
+                <tr><td>견적 유효기간</td><td>제안일로부터 30일</td></tr>
+              </table>
+
+              <h2>상세 견적 내역</h2>
+              <table>
+                <thead>
+                  <tr><th>구분</th><th>항목</th><th>수량</th><th>단가</th><th>금액</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>기획/설계</td><td>요구사항 정의, 화면 설계, 3단계 DB·API 설계</td><td>1식</td><td>-</td><td>3,500,000원</td></tr>
+                  <tr><td>디자인</td><td>모바일 앱·웹 대시보드·관리자 UI/UX (Figma)</td><td>1식</td><td>-</td><td>3,500,000원</td></tr>
+                  <tr><td>AI 파이프라인</td><td>Vision OCR 연동, 품목 사전 매핑, 교정 UI, 재학습 파이프라인</td><td>1식</td><td>-</td><td>8,000,000원</td></tr>
+                  <tr><td>원가 엔진</td><td>3단계 원가 계산, 연쇄 업데이트, 알림, 마진 대시보드</td><td>1식</td><td>-</td><td>6,000,000원</td></tr>
+                  <tr><td>모바일 앱</td><td>React Native 사용자 앱 (카메라·업로드·대시보드·푸시)</td><td>1식</td><td>-</td><td>4,500,000원</td></tr>
+                  <tr><td>웹 대시보드</td><td>React 사용자용 PC 웹 대시보드</td><td>1식</td><td>-</td><td>3,000,000원</td></tr>
+                  <tr><td>백엔드</td><td>Supabase Auth·RLS, 스키마, Edge Functions</td><td>1식</td><td>-</td><td>2,500,000원</td></tr>
+                  <tr><td>관리자 백오피스</td><td>식당 관리, 글로벌 품목 사전, API 통계·에러 로그</td><td>1식</td><td>-</td><td>2,000,000원</td></tr>
+                  <tr><td>QA/배포</td><td>통합 테스트, Vercel 배포, 스토어 배포 지원</td><td>1식</td><td>-</td><td>1,000,000원</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr><th colspan="4">합계 (VAT 별도)</th><th>34,000,000원</th></tr>
+                </tfoot>
+              </table>
+
+              <h2>산정 근거</h2>
+              <ul>
+                <li>유사 B2B SaaS·AI 연동·크로스플랫폼 앱 수행 경험을 바탕으로 기능별 공수를 산정하여 책정하였습니다.</li>
+                <li>AI Vision OCR·재학습 파이프라인과 3단계 원가 엔진을 핵심 가치 영역으로 보아 비중을 우선 배분하였습니다.</li>
+                <li>금액은 VAT 별도이며, 외부 유료 API(Vision API 등) 사용료와 호스팅 비용은 불포함입니다.</li>
+              </ul>
+
+              <h2>포함 사항</h2>
+              <ul>
+                <li>소스 코드 전체 이관</li>
+                <li>개발 문서 (API 명세서, DB 스키마, 배포 가이드, 관리자 매뉴얼)</li>
+                <li>1개월 무상 하자 보수</li>
+                <li>배포 환경 세팅 (1회)</li>
+              </ul>
+
+              <h2>불포함 사항</h2>
+              <ul>
+                <li>서버/호스팅 비용 (Supabase, Vercel 등)</li>
+                <li>도메인 구매 비용</li>
+                <li>외부 유료 API 사용 비용 (GPT-4o Vision / Claude API 등)</li>
+                <li>하자 보수 기간 이후 유지보수</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+
+        <!-- PAGE: 공수계산서 -->
+        <div id="page-manday" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>공수계산서</h1>
+              <blockquote>기능별 개발 공수(Man-Day)를 산출하여 일정과 비용의 근거를 제시합니다.</blockquote>
+
+              <h2>공수 요약</h2>
+              <table>
+                <tr><th>구분</th><th>공수 (M/D)</th><th>비율</th></tr>
+                <tr><td>기획/설계</td><td>18 M/D</td><td>11%</td></tr>
+                <tr><td>UI/UX 디자인</td><td>16 M/D</td><td>9%</td></tr>
+                <tr><td>AI Vision OCR &amp; 재학습 파이프라인</td><td>30 M/D</td><td>18%</td></tr>
+                <tr><td>3단계 원가 엔진 &amp; 대시보드</td><td>26 M/D</td><td>15%</td></tr>
+                <tr><td>모바일 앱 (React Native)</td><td>22 M/D</td><td>13%</td></tr>
+                <tr><td>웹 대시보드 (React)</td><td>14 M/D</td><td>8%</td></tr>
+                <tr><td>백엔드 / Supabase</td><td>16 M/D</td><td>9%</td></tr>
+                <tr><td>관리자 백오피스</td><td>14 M/D</td><td>8%</td></tr>
+                <tr><td>QA/배포</td><td>14 M/D</td><td>8%</td></tr>
+                <tr><th>합계</th><th>170 M/D</th><th>100%</th></tr>
+              </table>
+
+              <h2>기능별 상세 공수</h2>
+              <table>
+                <thead>
+                  <tr><th>기능</th><th>세부 작업</th><th>담당</th><th>공수 (M/D)</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td rowspan="2">기획/설계</td><td>요구사항 정의, 화면 흐름 설계, 3단계 원가 데이터 모델링</td><td>기획</td><td>12</td></tr>
+                  <tr><td>DB ERD, API 명세, RLS 정책 설계</td><td>기획/BE</td><td>6</td></tr>
+                  <tr><td>UI/UX 디자인</td><td>모바일 앱·웹 대시보드·관리자 백오피스 Figma 디자인</td><td>디자인</td><td>16</td></tr>
+                  <tr><td rowspan="4">AI Vision OCR &amp; 재학습</td><td>카메라 촬영·업로드, 이미지 전처리</td><td>FE/모바일</td><td>6</td></tr>
+                  <tr><td>Vision API 연동, JSON 추출 스키마·프롬프트 설계</td><td>BE</td><td>10</td></tr>
+                  <tr><td>외식업 품목명 사전 기반 이표기 자동 매핑</td><td>BE</td><td>6</td></tr>
+                  <tr><td>사용자 교정 UI + 교정 데이터 재학습 파이프라인</td><td>FE/BE</td><td>8</td></tr>
+                  <tr><td rowspan="4">3단계 원가 엔진</td><td>식자재→프렙→메뉴 계층 구조 구현</td><td>BE</td><td>8</td></tr>
+                  <tr><td>단가 변경 시 원가율 연쇄 자동 업데이트</td><td>BE</td><td>8</td></tr>
+                  <tr><td>목표 원가율 설정·초과 시 실시간 푸시 알림</td><td>BE/모바일</td><td>4</td></tr>
+                  <tr><td>마진율 차트·목표 대비 비교·수익 구조 진단 화면</td><td>FE</td><td>6</td></tr>
+                  <tr><td rowspan="2">모바일 앱 (RN)</td><td>인증·메인·명세서 촬영·교정 플로우 화면</td><td>모바일</td><td>14</td></tr>
+                  <tr><td>원가/마진 대시보드, 푸시 알림 수신 처리</td><td>모바일</td><td>8</td></tr>
+                  <tr><td>웹 대시보드 (React)</td><td>PC 웹 사용자 대시보드(원가·마진·진단) 구현</td><td>FE</td><td>14</td></tr>
+                  <tr><td rowspan="2">백엔드 / Supabase</td><td>Supabase Auth, 개인정보 동의 흐름, 스키마 구축</td><td>BE</td><td>8</td></tr>
+                  <tr><td>RLS 식당 단위 데이터 격리, Edge Functions</td><td>BE</td><td>8</td></tr>
+                  <tr><td>관리자 백오피스</td><td>식당 관리, 글로벌 품목 사전 마스터, API 통계·에러 로그 모니터링</td><td>FE/BE</td><td>14</td></tr>
+                  <tr><td>QA/배포</td><td>통합 테스트, 성능/로딩 UX 점검, Vercel·스토어 배포</td><td>공통</td><td>14</td></tr>
+                </tbody>
+              </table>
+
+              <h2>산정 기준</h2>
+              <ul>
+                <li>1 M/D = 8시간 기준 (1인 1일 작업량)</li>
+                <li>주 5일 근무 기준</li>
+                <li>버퍼 10~15% 포함</li>
+                <li>다수 인력 병행 투입으로 기획·디자인·개발 단계를 일부 중첩 진행하여 90일 일정 내 완수</li>
+                <li>유사 프로젝트 수행 경험 기반 효율적 개발</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+
+        <!-- PAGE: PRD -->
+        <div id="page-prd" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>PRD (Product Requirements Document)</h1>
+              <blockquote>프로젝트 요구사항을 정의하고 기능 범위를 명확히 합니다.</blockquote>
+
+              <h2>1. 프로젝트 배경 및 목적</h2>
+              <p>외식업 운영에서 매일 변동되는 식자재 단가를 수기로 입력하고 메뉴 원가를 계산하는 작업은 번거롭고 오류가 잦습니다. 본 프로젝트는 거래명세서 촬영 한 번으로 품목·단가를 자동 추출하고, 식자재에서 프렙·메뉴로 이어지는 3단계 원가 계산을 자동화하여, 외식업 사장님에게 직관적인 마진율 대시보드를 제공하는 B2B SaaS를 구축하는 것을 목표로 합니다.</p>
+
+              <h2>2. 사용자 정의</h2>
+              <table>
+                <thead>
+                  <tr><th>사용자 유형</th><th>설명</th><th>주요 기능</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>식당 사장/매니저</td><td>매장 운영 및 원가 관리 주체</td><td>명세서 촬영·교정, 메뉴 원가·마진 확인, 목표 원가율 설정, 푸시 알림 수신</td></tr>
+                  <tr><td>실무 직원</td><td>입고/식자재 관리 담당</td><td>명세서 업로드, 인식 결과 교정</td></tr>
+                  <tr><td>최고 관리자(운영사)</td><td>플랫폼 전체 운영</td><td>식당 관리, 글로벌 품목 사전 마스터 관리, API 호출 통계·에러 로그 모니터링</td></tr>
+                </tbody>
+              </table>
+
+              <h2>3. 기능 요구사항</h2>
+              <h3>3.1 AI Vision OCR &amp; 자동 재학습</h3>
+              <ul>
+                <li><strong>[필수]</strong> 모바일 앱 네이티브 카메라 연동 및 거래명세서 촬영·업로드</li>
+                <li><strong>[필수]</strong> GPT-4o Vision 또는 Claude API 연동 — 품목명·수량·단가·공급업체 JSON 추출</li>
+                <li><strong>[필수]</strong> 외식업 전용 품목명 사전 기반 이표기 자동 매핑</li>
+                <li><strong>[필수]</strong> 사용자 오인식 수동 교정 UI</li>
+                <li><strong>[필수]</strong> 교정 데이터를 활용한 AI 자동 재학습 파이프라인 연동</li>
+              </ul>
+              <h3>3.2 3단계 원가 계산 엔진 &amp; 대시보드</h3>
+              <ul>
+                <li><strong>[필수]</strong> 식자재→프렙→메뉴 3단계 계층 구조 DB 설계</li>
+                <li><strong>[필수]</strong> 식자재 단가 변경 시 연관 메뉴 원가율 연쇄 자동 업데이트</li>
+                <li><strong>[필수]</strong> 목표 원가율 설정 및 초과 시 실시간 앱 푸시 알림</li>
+                <li><strong>[필수]</strong> 메뉴별 원가율·마진율 실시간 표시 및 목표 대비 비교 차트</li>
+                <li><strong>[필수]</strong> 월 고정비·인건비 입력 기반 전체 수익 구조 진단 화면</li>
+              </ul>
+              <h3>3.3 프론트엔드 &amp; 최고 관리자 백오피스</h3>
+              <ul>
+                <li><strong>[필수]</strong> Supabase Auth 회원가입/로그인 및 개인정보보호법 기반 동의 UI</li>
+                <li><strong>[필수]</strong> React Native 기반 사용자용 모바일 앱 (iOS/Android)</li>
+                <li><strong>[필수]</strong> React 기반 사용자용 PC 웹 대시보드</li>
+                <li><strong>[필수]</strong> 전체 가입 식당 관리, 글로벌 품목 사전 마스터 관리, 식당별 API 호출 통계·에러 로그 모니터링 관리자 웹</li>
+              </ul>
+
+              <h2>4. 비기능 요구사항</h2>
+              <table>
+                <thead>
+                  <tr><th>항목</th><th>요구사항</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>성능</td><td>Vision API 호출 시 응답 지연을 고려한 비동기 처리 및 로딩 UI/UX 제공</td></tr>
+                  <tr><td>보안</td><td>Supabase RLS 적용으로 식당 간 데이터 완전 격리, 개인정보보호법 동의 절차 준수</td></tr>
+                  <tr><td>확장성</td><td>가입 식당 증가에 대응 가능한 멀티테넌트 데이터 모델</td></tr>
+                  <tr><td>가용성</td><td>Vercel/Supabase 기반 관리형 인프라로 운영 부담 최소화</td></tr>
+                </tbody>
+              </table>
+
+              <h2>5. 기술 제약사항</h2>
+              <ul>
+                <li>프론트엔드 앱: React Native / 웹: React.js</li>
+                <li>백엔드·DB: Supabase (PostgreSQL, Auth, RLS, Edge Functions)</li>
+                <li>인프라·배포: Vercel</li>
+                <li>AI 연동: OpenAI GPT-4o Vision API 또는 Anthropic Claude API</li>
+                <li>클라이언트 제공: 핵심 아이디어·요구사항 정의서, 초기 외식업 품목명 사전 엑셀 데이터</li>
+              </ul>
+
+              <h2>6. 범위 외 사항 (Out of Scope)</h2>
+              <ul>
+                <li>POS·회계 등 외부 시스템 연동 (별도 협의)</li>
+                <li>발주·재고 관리 등 본 과업에 명시되지 않은 모듈</li>
+                <li>외부 유료 API 사용료 및 인프라 운영 비용</li>
+                <li>하자 보수 기간 이후의 지속 유지보수 및 기능 고도화</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+
+        <!-- PAGE: 일정 제안 -->
+        <div id="page-timeline" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>일정 제안</h1>
+              <blockquote>총 90일 기준 단계별 마일스톤 및 산출물을 제안합니다. 다수 인력 병행 투입으로 일부 단계는 중첩 진행됩니다.</blockquote>
+
+              <h2>전체 일정 요약</h2>
+              <table>
+                <thead>
+                  <tr><th>단계</th><th>기간</th><th>주요 산출물</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Phase 1: 기획 &amp; 디자인</td><td>Day 1–20</td><td>요구사항 정의서, 화면 설계, 3단계 DB ERD, API 명세, Figma 디자인</td></tr>
+                  <tr><td>Phase 2: 백엔드 &amp; AI OCR 파이프라인</td><td>Day 18–50</td><td>Supabase 스키마·RLS·Auth, Vision API 연동, 품목 사전 매핑, 교정·재학습 파이프라인</td></tr>
+                  <tr><td>Phase 3: 원가 엔진 &amp; 앱/웹 대시보드</td><td>Day 40–72</td><td>3단계 원가 엔진, 연쇄 업데이트, 푸시 알림, RN 앱·React 웹 대시보드</td></tr>
+                  <tr><td>Phase 4: 관리자 백오피스 &amp; 통합</td><td>Day 65–80</td><td>관리자 웹(식당·품목 사전·통계·로그), 전체 기능 통합</td></tr>
+                  <tr><td>Phase 5: QA &amp; 배포</td><td>Day 80–90</td><td>통합 테스트, 성능/로딩 UX 점검, Vercel·앱 스토어 배포, 관리자 매뉴얼</td></tr>
+                </tbody>
+              </table>
+            </article>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <h2 class="mb-4 text-sm font-semibold tracking-[0.14em] text-slate-500">상세 타임라인</h2>
+            <div class="timeline">
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 1</p>
+                <h4 class="text-base font-semibold text-slate-900">기획 &amp; 디자인</h4>
+                <p class="mb-1 text-xs font-semibold text-amber-600">Day 1–20</p>
+                <p class="text-sm leading-7 text-slate-600">요구사항 정의서·요구사항 정의서 정리, 화면 흐름 설계, 식자재→프렙→메뉴 3단계 데이터 모델링, API 명세, 모바일·웹·관리자 Figma 디자인</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 요구사항 정의서, 와이어프레임, ERD, API 명세서, Figma 디자인</li>
+                </ul>
+              </div>
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 2</p>
+                <h4 class="text-base font-semibold text-slate-900">백엔드 &amp; AI Vision OCR 파이프라인</h4>
+                <p class="mb-1 text-xs font-semibold text-amber-600">Day 18–50</p>
+                <p class="text-sm leading-7 text-slate-600">Supabase Auth·RLS·스키마 구축, Vision API 연동 및 JSON 추출, 외식업 품목명 사전 매핑, 교정 UI 및 교정 데이터 재학습 파이프라인 구축</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 인증·데이터 격리 기반, OCR 추출·교정·재학습 모듈</li>
+                </ul>
+              </div>
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 3</p>
+                <h4 class="text-base font-semibold text-slate-900">원가 엔진 &amp; 앱/웹 대시보드</h4>
+                <p class="mb-1 text-xs font-semibold text-amber-600">Day 40–72</p>
+                <p class="text-sm leading-7 text-slate-600">3단계 원가 계산 엔진·연쇄 자동 업데이트, 목표 원가율 푸시 알림, React Native 앱과 React 웹 대시보드(원가·마진·수익 진단) 구현</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 원가 엔진, 마진 대시보드, iOS/Android 앱, PC 웹 대시보드</li>
+                </ul>
+              </div>
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 4</p>
+                <h4 class="text-base font-semibold text-slate-900">관리자 백오피스 &amp; 통합</h4>
+                <p class="mb-1 text-xs font-semibold text-amber-600">Day 65–80</p>
+                <p class="text-sm leading-7 text-slate-600">전체 가입 식당 관리, 글로벌 품목 사전 마스터 관리, 식당별 API 호출 통계·에러 로그 모니터링 관리자 웹 구현 및 전체 기능 통합</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 최고 관리자 백오피스, 통합 빌드</li>
+                </ul>
+              </div>
+              <div class="timeline-item">
+                <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 5</p>
+                <h4 class="text-base font-semibold text-slate-900">QA &amp; 배포</h4>
+                <p class="mb-1 text-xs font-semibold text-amber-600">Day 80–90</p>
+                <p class="text-sm leading-7 text-slate-600">통합 테스트, Vision API 지연 대응 로딩 UX 점검, RLS 데이터 격리 검증, Vercel·앱 스토어 배포, 관리자 매뉴얼 작성</p>
+                <ul class="mt-2 list-disc pl-5 text-sm text-slate-500">
+                  <li>산출물: 테스트 리포트, 배포 완료본, 관리자 매뉴얼</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h2>마일스톤 체크포인트</h2>
+              <table>
+                <thead>
+                  <tr><th>마일스톤</th><th>시점</th><th>검수 기준</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>M1: 기획·디자인 완료</td><td>Day 20</td><td>요구사항 정의서·ERD·API 명세·Figma 승인</td></tr>
+                  <tr><td>M2: OCR 파이프라인 동작</td><td>Day 50</td><td>촬영→추출→교정→재학습 흐름 시연</td></tr>
+                  <tr><td>M3: 원가 엔진·대시보드</td><td>Day 72</td><td>연쇄 업데이트·푸시·마진 대시보드 시연</td></tr>
+                  <tr><td>M4: 관리자·통합 완료</td><td>Day 80</td><td>관리자 백오피스 및 통합 빌드 검수</td></tr>
+                  <tr><td>M5: 최종 배포</td><td>Day 90</td><td>배포 완료, 산출물·매뉴얼 인계</td></tr>
+                </tbody>
+              </table>
+
+              <h2>커뮤니케이션 계획</h2>
+              <table>
+                <tr><th>항목</th><th>방식</th><th>주기</th></tr>
+                <tr><td>일일 진행 공유</td><td>Slack / 카카오톡</td><td>매일</td></tr>
+                <tr><td>주간 미팅</td><td>Zoom / Google Meet (온라인)</td><td>주 1회</td></tr>
+                <tr><td>마일스톤 리뷰</td><td>화면 공유 + 문서</td><td>단계 완료 시</td></tr>
+                <tr><td>이슈 트래킹</td><td>GitHub Issues</td><td>상시</td></tr>
+              </table>
+            </article>
+          </div>
+        </div>
+
+        <!-- PAGE: 포트폴리오 -->
+        <div id="page-portfolio" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>유사 프로젝트 경험</h1>
+              <blockquote>본 프로젝트와 유사한 기능/기술 스택을 활용한 수행 경험을 소개합니다.</blockquote>
+            </article>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">10+</p>
+              <p class="mt-1 text-xs text-slate-500">누적 수행 프로젝트</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">B2B SaaS</p>
+              <p class="mt-1 text-xs text-slate-500">멀티테넌트 구축 다수</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">AI · LLM</p>
+              <p class="mt-1 text-xs text-slate-500">Vision/LLM 연동 경험</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur">
+              <p class="text-2xl font-bold text-sky-700">iOS · AOS · Web</p>
+              <p class="mt-1 text-xs text-slate-500">크로스플랫폼 동시 출시</p>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">B2B SaaS · 헬스케어</div>
+              <h3 class="text-lg font-semibold tracking-tight text-slate-900">Harmony Link — 시니어 주간보호 관리 플랫폼</h3>
+              <p class="mt-1 text-xs text-slate-400">B2B SaaS / 멀티테넌트 / 약 6개월</p>
+              <div class="mt-3 doc-content">
+                <h4>프로젝트 개요</h4>
+                <p>케어 로그·투약 관리, 보호자 커뮤니케이션, AI 건강 분석을 제공하는 멀티테넌트 B2B SaaS. 모바일·웹·관리자 등 6개 플랫폼을 단일 데이터 모델 위에서 제공.</p>
+                <h4>핵심 기능</h4>
+                <ul>
+                  <li>멀티테넌트 아키텍처 기반 기관 간 데이터 격리</li>
+                  <li>AI(OpenAI) 기반 건강 데이터 분석</li>
+                  <li>크로스플랫폼(모바일+웹+관리자) 통합 개발, 140+ API 엔드포인트</li>
+                </ul>
+                <h4>본 프로젝트와의 유사점</h4>
+                <p>식당 단위 데이터 격리(Supabase RLS)와 동일한 멀티테넌트 설계, AI 기반 데이터 처리, 모바일 앱·웹 대시보드·관리자 백오피스를 함께 제공하는 구조가 본 프로젝트와 직접 대응됩니다.</p>
+                <h4>기술 스택</h4>
+                <div class="flex flex-wrap gap-1.5 not-prose">
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Flutter</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">NestJS</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Next.js</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">React</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">AWS</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">AI · 자동화</div>
+              <h3 class="text-lg font-semibold tracking-tight text-slate-900">AI Agent — LLM 기반 자동화 파이프라인</h3>
+              <p class="mt-1 text-xs text-slate-400">AI / 자동화 / 개발 도구</p>
+              <div class="mt-3 doc-content">
+                <h4>프로젝트 개요</h4>
+                <p>LLM(Claude 등) 연동과 MCP 기반 멀티 에이전트 오케스트레이션으로 작업을 자동화하는 프레임워크. 추출·검증·재처리 루프를 갖춘 파이프라인을 다수 구축.</p>
+                <h4>핵심 기능</h4>
+                <ul>
+                  <li>LLM API 연동 및 구조화 데이터(JSON) 추출 파이프라인</li>
+                  <li>품질 게이트 기반 검증·재처리 루프</li>
+                  <li>프롬프트·규칙 기반 지속 개선 구조</li>
+                </ul>
+                <h4>본 프로젝트와의 유사점</h4>
+                <p>거래명세서 이미지에서 LLM Vision으로 구조화 JSON을 추출하고, 사용자 교정 데이터로 정확도를 개선하는 재학습 파이프라인 설계와 동일한 LLM 연동·자동화 역량을 적용합니다.</p>
+                <h4>기술 스택</h4>
+                <div class="flex flex-wrap gap-1.5 not-prose">
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">TypeScript</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Claude API</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">MCP</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">React</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">PostgreSQL</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">B2B SaaS · 어드민</div>
+              <h3 class="text-lg font-semibold tracking-tight text-slate-900">EZ-Approve — 전자결재 SaaS &amp; 관리자 대시보드</h3>
+              <p class="mt-1 text-xs text-slate-400">B2B SaaS / 기업용 / 약 9주</p>
+              <div class="mt-3 doc-content">
+                <h4>프로젝트 개요</h4>
+                <p>다단계 전자결재 엔진과 관리자 대시보드, 6계층 보안·RBAC를 갖춘 기업용 B2B SaaS. 50+ 페이지, 120-150 API 엔드포인트 규모.</p>
+                <h4>핵심 기능</h4>
+                <ul>
+                  <li>관리자 백오피스·대시보드(사용자/조직/통계 관리)</li>
+                  <li>RBAC·6계층 보안 기반 권한·데이터 접근 제어</li>
+                  <li>상태 변화가 연쇄되는 결재 워크플로우 엔진</li>
+                </ul>
+                <h4>본 프로젝트와의 유사점</h4>
+                <p>최고 관리자 백오피스(식당·품목 사전·통계·로그 관리)와 데이터 접근 제어, 단가 변경이 메뉴 원가율로 연쇄되는 자동 업데이트 로직을 안정적으로 구현한 경험과 대응됩니다.</p>
+                <h4>기술 스택</h4>
+                <div class="flex flex-wrap gap-1.5 not-prose">
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">NestJS</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Next.js</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">TypeScript</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">MySQL</span>
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Docker</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-50 to-brand-50 p-6 text-center shadow-soft md:p-10">
+            <h2 class="text-xl font-bold tracking-tight text-slate-900 md:text-2xl">함께 만들어 가겠습니다</h2>
+            <p class="mx-auto mt-3 max-w-lg text-sm leading-7 text-slate-600">프로젝트에 대해 더 자세한 논의를 원하시면 미팅을 신청해 주세요.</p>
+          </div>
+        </div>
+
+        <!-- ─── Bottom Page Navigation ─── -->
+        <div id="page-nav" class="mt-6 flex items-center justify-between gap-4" style="display:none;">
+          <a id="nav-prev" href="#home"
+             class="group flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-3 shadow-soft backdrop-blur transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+            <svg class="w-5 h-5 text-slate-400 transition group-hover:text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <span>
+              <span class="block text-xs text-slate-400">이전</span>
+              <span id="nav-prev-label" class="block text-sm font-semibold text-slate-700 group-hover:text-sky-700">홈</span>
+            </span>
+          </a>
+          <a id="nav-next" href="#overview"
+             class="group flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-3 shadow-soft backdrop-blur transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white text-right ml-auto">
+            <span>
+              <span class="block text-xs text-slate-400">다음</span>
+              <span id="nav-next-label" class="block text-sm font-semibold text-slate-700 group-hover:text-sky-700">프로젝트 소개</span>
+            </span>
+            <svg class="w-5 h-5 text-slate-400 transition group-hover:text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+      </main>
+    </div>
+
+    <footer class="mt-10 border-t border-slate-200 pt-6 text-xs text-slate-500">
+      &copy; 2026 &middot; 본 제안서는 외식업 전용 AI 거래명세서 OCR 및 원가 관리 SaaS 플랫폼 구축 프로젝트를 위해 작성되었습니다.
+    </footer>
+  </div>
+
+  <!-- ─── SPA Router ─── -->
+  <script>
+    const pages = ['home', 'overview', 'estimate', 'manday', 'prd', 'timeline', 'portfolio'];
+    const pageLabels = {
+      home: '홈', overview: '프로젝트 소개', estimate: '견적서',
+      manday: '공수계산서', prd: 'PRD', timeline: '일정 제안', portfolio: '유사 프로젝트 경험'
+    };
+
+    function navigate(pageId) {
+      if (!pages.includes(pageId)) pageId = 'home';
+      document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById('page-' + pageId);
+      if (target) target.classList.add('active');
+      document.querySelectorAll('.nav-link').forEach(link => {
+        if (link.dataset.page === pageId) {
+          link.className = 'nav-link block rounded-xl border px-3 py-2 text-sm border-sky-200 bg-sky-50 font-medium text-sky-700';
+        } else {
+          link.className = 'nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900';
+        }
+      });
+      updatePageNav(pageId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      closeSidebar();
+    }
+
+    function updatePageNav(pageId) {
+      const nav = document.getElementById('page-nav');
+      const idx = pages.indexOf(pageId);
+      const prevBtn = document.getElementById('nav-prev');
+      const nextBtn = document.getElementById('nav-next');
+      const prevLabel = document.getElementById('nav-prev-label');
+      const nextLabel = document.getElementById('nav-next-label');
+
+      nav.style.display = (pageId === 'home') ? 'none' : 'flex';
+
+      if (idx > 0) {
+        prevBtn.href = '#' + pages[idx - 1];
+        prevLabel.textContent = pageLabels[pages[idx - 1]];
+        prevBtn.style.visibility = 'visible';
+      } else {
+        prevBtn.style.visibility = 'hidden';
+      }
+
+      if (idx < pages.length - 1) {
+        nextBtn.href = '#' + pages[idx + 1];
+        nextLabel.textContent = pageLabels[pages[idx + 1]];
+        nextBtn.style.visibility = 'visible';
+      } else {
+        nextBtn.style.visibility = 'hidden';
+      }
+    }
+
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-backdrop').classList.remove('open');
+    }
+
+    function handleHash() {
+      const hash = (location.hash || '#home').replace('#', '');
+      navigate(hash);
+    }
+    window.addEventListener('hashchange', handleHash);
+    window.addEventListener('DOMContentLoaded', handleHash);
+
+    document.getElementById('sidebar-toggle').addEventListener('click', function() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebar-backdrop').classList.toggle('open');
+    });
+  </script>
+</body>
+</html>
