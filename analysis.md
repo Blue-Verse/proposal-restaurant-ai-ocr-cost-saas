@@ -55,9 +55,11 @@ job:
 
 1. **Harmony Link** (B2B SaaS·헬스케어) — 멀티테넌트 데이터 격리(= Supabase RLS 식당 격리), AI 데이터 분석, 모바일+웹+관리자 크로스플랫폼. 본 프로젝트 구조와 최상위 대응.
 2. **AI Agent** (AI/자동화) — LLM(Claude) 연동, 구조화 JSON 추출, 검증·재처리 루프 = Vision OCR + 자동 재학습 파이프라인 역량.
-3. **EZ-Approve** (B2B SaaS·어드민) — 관리자 백오피스/대시보드, RBAC·데이터 접근 제어, 상태 연쇄 워크플로우 = 관리자 + 원가 연쇄 업데이트.
+3. **Connectin** (OCR·크로스플랫폼) — OCR 명함 스캔(카메라 촬영→정보 추출), iOS/Android 크로스플랫폼 앱, Signal Protocol E2E 암호화 = 공고 #1 기능인 OCR 직접 대응 + 모바일 앱 + 데이터 보호.
 
-(보조 후보: Connectin — OCR 명함 스캔/크로스플랫폼 / Calendar Share — Supabase / Pilates App — React Native)
+> 교체 근거: EZ-Approve(관리자/연쇄)는 Harmony Link와 SaaS·어드민 영역이 중복되어 한계 설득력이 낮음. Connectin은 공고 최대 의구심 포인트인 "촬영→OCR 추출"을 직접 입증하고 다른 두 포트폴리오와 겹치지 않아 채택.
+>
+> (보조 후보: EZ-Approve — 관리자/연쇄 업데이트 / Calendar Share — Supabase / Pilates App — React Native)
 
 ## 5. 최종 제안 요약
 
@@ -148,11 +150,11 @@ https://proposal-router.claude-ai-b27.workers.dev/proposal-restaurant-ai-ocr-cos
 - 유사점: 이미지에서 LLM Vision으로 JSON을 추출하고 교정 데이터로 정확도를 높이는 재학습 파이프라인과 동일 역량
 - 기술 스택: TypeScript, Claude API, MCP, React, PostgreSQL
 
-▶ EZ-Approve — 전자결재 SaaS & 관리자 대시보드 (약 9주)
-- 프로젝트 유형: B2B SaaS / 기업용 어드민
-- 핵심 기능: 관리자 백오피스·대시보드, RBAC·6계층 보안, 상태 연쇄 결재 워크플로우, 120-150 API
-- 유사점: 최고 관리자 백오피스(식당·품목 사전·통계·로그)와 단가 변경이 메뉴 원가율로 연쇄되는 자동 업데이트 로직 구현 경험
-- 기술 스택: NestJS, Next.js, TypeScript, MySQL, Docker
+▶ Connectin — 디지털 명함 & 네트워킹 플랫폼 (약 3개월)
+- 프로젝트 유형: B2B 플랫폼 / OCR / 크로스플랫폼
+- 핵심 기능: OCR 명함 스캔(카메라 촬영→정보 추출), BLE 근거리 탐색, Signal Protocol E2E 암호화, 12 마이크로서비스·63 API·41 모바일 기능
+- 유사점: "카메라로 촬영→이미지에서 정보 자동 추출"이라는 본 프로젝트 OCR 핵심 흐름의 직접 구현 경험, iOS/Android 크로스플랫폼 동시 출시, 강력한 데이터 보호 설계
+- 기술 스택: Flutter, Next.js, React, Express, PostgreSQL
 
 ---
 
@@ -180,4 +182,4 @@ https://proposal-router.claude-ai-b27.workers.dev/proposal-restaurant-ai-ocr-cos
 ### 관련 포트폴리오 추천
 1. Harmony Link — 멀티테넌트 B2B SaaS + AI 분석 + 모바일·웹·관리자 통합
 2. AI Agent — LLM 연동·구조화 추출·재학습 루프
-3. EZ-Approve — 관리자 백오피스 + 데이터 접근 제어 + 연쇄 업데이트 워크플로우
+3. Connectin — OCR 명함 스캔(촬영→추출) + iOS/Android 크로스플랫폼 + E2E 암호화
